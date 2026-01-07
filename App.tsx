@@ -1,9 +1,3 @@
-
-/* 
-  SQL SETUP: Run the script provided in database_setup.sql 
-  in your Supabase SQL Editor.
-*/
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Profile, Meal, MealSelection, ConfirmedMeal, InventoryItem, CartItem, ChatMessage, MealTime, Language } from './types';
 import { translations } from './translations';
@@ -64,27 +58,30 @@ const App: React.FC = () => {
   }, [user?.family_code]);
 
   useEffect(() => {
+    let mounted = true;
+
     const initSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
+      if (session?.user && mounted) {
         const { data: profile } = await supabase.from(TABLES.PROFILES).select('*').eq('id', session.user.id).maybeSingle();
         if (profile) {
           setUser(profile);
           if (profile.language) setLang(profile.language as Language);
         }
       }
-      setInitialLoading(false);
+      if (mounted) setInitialLoading(false);
     };
+
     initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
       if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
         const { data: profile } = await supabase.from(TABLES.PROFILES).select('*').eq('id', session.user.id).maybeSingle();
         if (profile) {
           setUser(profile);
           if (profile.language) setLang(profile.language as Language);
-        } else {
-            setUser(null); 
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -92,7 +89,10 @@ const App: React.FC = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
