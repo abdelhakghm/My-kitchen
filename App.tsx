@@ -1,17 +1,7 @@
 
 /* 
-  SQL FIX FOR YOUR SUPABASE:
-  Go to your Supabase Dashboard -> SQL Editor and run this:
-
-  -- 1. Enable Realtime for your tables
-  alter publication supabase_realtime add table chat_messages;
-  alter publication supabase_realtime add table profiles;
-
-  -- 2. Bypass RLS (for testing) to ensure data flows
-  ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
-  ALTER TABLE chat_messages DISABLE ROW LEVEL SECURITY;
-  ALTER TABLE daily_meal_selections DISABLE ROW LEVEL SECURITY;
-  ALTER TABLE confirmed_meals DISABLE ROW LEVEL SECURITY;
+  SQL SETUP: Run the script provided in database_setup.sql 
+  in your Supabase SQL Editor.
 */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -87,15 +77,13 @@ const App: React.FC = () => {
     };
     initSession();
 
-    // Listener for Auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
         const { data: profile } = await supabase.from(TABLES.PROFILES).select('*').eq('id', session.user.id).maybeSingle();
         if (profile) {
           setUser(profile);
           if (profile.language) setLang(profile.language as Language);
         } else {
-            // User signed in but profile doesn't exist yet (setup required)
             setUser(null); 
         }
       } else if (event === 'SIGNED_OUT') {
@@ -111,7 +99,6 @@ const App: React.FC = () => {
     if (!user?.family_code) return;
     fetchData();
 
-    // Set up real-time subscription
     const channel = supabase.channel(`kitchen-${user.family_code}`)
       .on('postgres_changes', { event: '*', schema: 'public', filter: `family_code=eq.${user.family_code}` }, () => {
         fetchData();
@@ -123,26 +110,13 @@ const App: React.FC = () => {
 
   const handleSendMessage = async (text: string) => {
     if (!user) return;
-    
     const newMessage = {
       sender_id: user.id,
       message: text,
       family_code: user.family_code,
       profile_data: { name: user.name, avatar_url: user.avatar_url }
     };
-
-    const tempMsg: ChatMessage = { 
-      id: 'temp-' + Date.now(), 
-      ...newMessage, 
-      created_at: new Date().toISOString() 
-    };
-    setMessages(prev => [...prev, tempMsg]);
-
-    const { error } = await supabase.from(TABLES.MESSAGES).insert(newMessage);
-    if (error) {
-      console.error("Send error:", error);
-      fetchData();
-    }
+    await supabase.from(TABLES.MESSAGES).insert(newMessage);
   };
 
   const handleSelectMeal = async (mealId: string, slot: MealTime) => {
@@ -172,8 +146,19 @@ const App: React.FC = () => {
     });
   };
 
-  const handleInventoryUpdate = async (id: string, qty: number) => {
-    await supabase.from(TABLES.INVENTORY).update({ quantity: Math.max(0, qty) }).eq('id', id);
+  const handleAddAndPick = async (name: string, slot: MealTime) => {
+    if (!user) return;
+    const { data: newMeal } = await supabase.from(TABLES.MEALS).insert({
+        name, description: 'Quick add', category: slot, family_code: user.family_code, created_by: user.id
+    }).select().single();
+    if (newMeal) {
+      if (user.role === 'Mother') await handleConfirmMeal(newMeal.id, slot, '19:00');
+      else await handleSelectMeal(newMeal.id, slot);
+    }
+  };
+
+  const handleInventoryUpdate = async (id: string, updates: Partial<InventoryItem>) => {
+    await supabase.from(TABLES.INVENTORY).update(updates).eq('id', id);
   };
 
   const handleInventoryAdd = async (name: string, qty: number) => {
@@ -181,6 +166,10 @@ const App: React.FC = () => {
     await supabase.from(TABLES.INVENTORY).insert({ 
       item_name: name, quantity: qty, unit: 'pcs', family_code: user.family_code 
     });
+  };
+
+  const handleInventoryDelete = async (id: string) => {
+    await supabase.from(TABLES.INVENTORY).delete().eq('id', id);
   };
 
   const handleCartToggle = async (id: string) => {
@@ -209,21 +198,35 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen max-w-md mx-auto bg-white shadow-2xl relative overflow-hidden" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-      <div className={`h-1.5 w-full ${user.role === 'Mother' ? 'bg-orange-500' : 'bg-blue-500'}`} />
+      <div className={`h-1.5 w-full transition-colors duration-500 ${user.role === 'Mother' ? 'bg-orange-500' : 'bg-blue-500'}`} />
       <header className="px-6 py-6 flex justify-between items-center bg-white border-b border-gray-50">
         <div>
           <h1 className="text-xl font-black text-gray-900 tracking-tight">{t.appTitle}</h1>
           <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">{user.name} • {user.role}</p>
         </div>
-        <button onClick={() => setLang(l => l === 'en' ? 'ar' : 'en')} type="button" className="px-4 py-2 bg-gray-50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-500 border border-gray-100">
+        <button onClick={() => setLang(l => l === 'en' ? 'ar' : 'en')} className="px-4 py-2 bg-gray-50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-500 border border-gray-100 active:bg-gray-100 transition-all">
           {lang === 'en' ? 'Arabic' : 'English'}
         </button>
       </header>
 
       <main className="flex-1 overflow-y-auto px-6 py-6 hide-scrollbar pb-28">
-        {activeTab === 'home' && <Dashboard lang={lang} user={user} meals={meals} selections={selections} confirmedMeals={confirmedMeals} onSelectMeal={handleSelectMeal} onConfirmMeal={handleConfirmMeal} />}
-        {activeTab === 'inventory' && <Inventory lang={lang} user={user} items={inventory} onUpdate={handleInventoryUpdate} onAdd={handleInventoryAdd} />}
-        {activeTab === 'cart' && <ShoppingCart lang={lang} user={user} items={cart} onToggle={handleCartToggle} onAdd={handleCartAdd} onRemove={handleCartRemove} />}
+        {activeTab === 'home' && (
+          <Dashboard 
+            lang={lang} user={user} meals={meals} selections={selections} confirmedMeals={confirmedMeals} 
+            onSelectMeal={handleSelectMeal} onConfirmMeal={handleConfirmMeal} onAddAndPick={handleAddAndPick}
+          />
+        )}
+        {activeTab === 'inventory' && (
+          <Inventory 
+            lang={lang} user={user} items={inventory} onUpdate={handleInventoryUpdate} onAdd={handleInventoryAdd} 
+            onDelete={handleInventoryDelete} onRequest={handleCartAdd}
+          />
+        )}
+        {activeTab === 'cart' && (
+          <ShoppingCart 
+            lang={lang} user={user} items={cart} onToggle={handleCartToggle} onAdd={handleCartAdd} onRemove={handleCartRemove} 
+          />
+        )}
         {activeTab === 'chat' && <Chat lang={lang} user={user} messages={messages} onSendMessage={handleSendMessage} />}
         {activeTab === 'profile' && <ProfileView lang={lang} user={user} onLogout={() => { supabase.auth.signOut(); setUser(null); }} onToggleLang={() => setLang(l => l === 'en' ? 'ar' : 'en')} />}
       </main>

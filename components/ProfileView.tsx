@@ -29,43 +29,45 @@ const ProfileView: React.FC<ProfileProps> = ({ user, lang, onLogout, onToggleLan
         <h2 className="text-3xl font-black text-gray-900 leading-tight">{t.settings}</h2>
       </div>
 
-      {/* User Card */}
       <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm text-center mb-6">
         <div className="relative inline-block">
-          <img src={user.avatar_url} className="w-24 h-24 rounded-3xl mx-auto shadow-xl mb-4" alt="" />
+          <img src={user.avatar_url} className="w-24 h-24 rounded-[2rem] mx-auto shadow-xl mb-4" alt="" />
           <div className="absolute -bottom-2 -right-2 bg-green-500 w-6 h-6 rounded-full border-4 border-white"></div>
         </div>
         <h3 className="text-2xl font-bold text-gray-900">{user.name}</h3>
         <p className="text-sm font-bold text-orange-500 uppercase tracking-widest mt-1">{user.role}</p>
       </div>
 
-      {/* Family Code Section (Crucial for the Mother to find the code) */}
-      <div className="mb-6">
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
-          {lang === 'ar' ? 'رمز العائلة الخاص بك' : 'Your Family Code'}
-        </p>
-        <div className="bg-orange-50 rounded-2xl p-5 border border-orange-100 flex items-center justify-between">
+      <div className="mb-6 p-6 bg-orange-50 rounded-3xl border border-orange-100">
+        <div className="flex justify-between items-start mb-4">
           <div>
-            <p className="text-xs text-orange-400 font-bold uppercase mb-1">
-              {lang === 'ar' ? 'شارك هذا مع عائلتك' : 'Share this with your family'}
+            <p className="text-[10px] font-black text-orange-400 uppercase tracking-[0.2em] mb-1">
+              {lang === 'ar' ? 'رمز العائلة' : 'Family Kitchen Code'}
             </p>
-            <p className="text-xl font-black text-orange-600 tracking-tighter uppercase">{user.family_code}</p>
+            <p className="text-2xl font-black text-orange-600 tracking-tighter uppercase font-mono">
+              {user.family_code}
+            </p>
           </div>
           <button 
             onClick={copyFamilyCode}
-            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${
-              copied ? 'bg-green-500 text-white' : 'bg-white text-orange-500 shadow-sm border border-orange-100'
+            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all active:scale-90 ${
+              copied ? 'bg-green-500 text-white' : 'bg-white text-orange-500 shadow-sm border border-orange-200'
             }`}
           >
-            {copied ? (lang === 'ar' ? 'تم النسخ' : 'Copied!') : (lang === 'ar' ? 'نسخ' : 'Copy')}
+            {copied ? (lang === 'ar' ? 'تم النسخ' : 'Copied!') : (lang === 'ar' ? 'Copy Code' : 'Copy Code')}
           </button>
         </div>
+        <p className="text-xs text-orange-400 leading-relaxed italic">
+          {lang === 'ar' 
+            ? 'شارك هذا الرمز مع عائلتك ليتمكنوا من الانضمام إلى مطبخك.' 
+            : 'Share this code with your family members so they can join your synced kitchen.'}
+        </p>
       </div>
 
       <div className="space-y-3">
         <button 
           onClick={onToggleLang}
-          className="w-full flex items-center justify-between p-5 bg-gray-50 rounded-2xl font-bold text-gray-700 group hover:bg-gray-100 transition-colors"
+          className="w-full flex items-center justify-between p-5 bg-gray-50 rounded-2xl font-bold text-gray-700 hover:bg-gray-100 transition-colors"
         >
           <span className="flex items-center gap-3">
              <span className="text-xl">🌐</span> {t.language}
@@ -77,7 +79,7 @@ const ProfileView: React.FC<ProfileProps> = ({ user, lang, onLogout, onToggleLan
         
         <button 
           onClick={onLogout}
-          className="w-full flex items-center justify-between p-5 bg-red-50 rounded-2xl font-bold text-red-600 mt-8 group hover:bg-red-100 transition-colors"
+          className="w-full flex items-center justify-between p-5 bg-red-50 rounded-2xl font-bold text-red-600 mt-8 hover:bg-red-100 transition-colors"
         >
           <span className="flex items-center gap-3">
              <span className="text-xl">🚪</span> {t.logout}
@@ -89,7 +91,7 @@ const ProfileView: React.FC<ProfileProps> = ({ user, lang, onLogout, onToggleLan
       </div>
 
       <div className="mt-12 text-center opacity-20">
-        <p className="text-[10px] font-black tracking-[0.2em] text-gray-400 uppercase">My Kitchen v1.0.4</p>
+        <p className="text-[10px] font-black tracking-[0.2em] text-gray-400 uppercase tracking-widest">My Kitchen Hub v1.0.5</p>
       </div>
     </div>
   );
