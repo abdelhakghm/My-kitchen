@@ -1,0 +1,7 @@
+{
+  "name": "My Kitchen",
+  "description": "A comprehensive family meal planning and inventory management app designed for family coordination.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
