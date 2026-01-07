@@ -1,4 +1,3 @@
-
 export const translations = {
   en: {
     appTitle: 'MY KITCHEN',
@@ -33,33 +32,33 @@ export const translations = {
   },
   ar: {
     appTitle: 'مطبخي',
-    home: 'الرئيسية',
-    stock: 'المخزون',
+    home: 'المطبخ',
+    stock: 'المؤونة',
     shop: 'التسوق',
     family: 'العائلة',
     me: 'حسابي',
-    whatsForDinner: "ماذا سنطبخ،",
+    whatsForDinner: "ماذا سنأكل اليوم،",
     familySuffix: "يا عائلة؟",
     confirmed: 'وجبة مؤكدة',
-    readyBy: 'موعد الجاهزية',
-    noMealConfirmed: 'لا توجد وجبة مؤكدة بعد',
+    readyBy: 'جاهزة في تمام',
+    noMealConfirmed: 'لا توجد وجبة مؤكدة حالياً',
     decideForFamily: 'تحديد وجبة العائلة',
     suggestMeal: 'اقتراح وجبة',
-    familyRequests: 'اقتراحات العائلة',
-    pickAMeal: 'اختر الطبق',
-    quickAdd: 'إضافة طبق جديد',
-    foodName: 'اسم الأكلة...',
+    familyRequests: 'طلبات العائلة',
+    pickAMeal: 'اختر وجبة',
+    quickAdd: 'إضافة أكلة سريعة',
+    foodName: 'اسم الوجبة...',
     addFood: 'إضافة واختيار',
     readyTime: 'وقت التجهيز:',
-    pantryStock: 'مؤونة المطبخ',
+    pantryStock: 'مخزون المطبخ',
     addIngredient: 'إضافة صنف',
     shoppingList: 'قائمة المشتريات',
     familyChat: 'الدردشة العائلية',
     settings: 'الإعدادات',
     logout: 'تسجيل الخروج',
-    language: 'تغيير اللغة',
-    suggestedBy: 'اقتراح من:',
-    runningLow: 'أوشك على النفاد!',
-    inStock: 'متوفر بالمخزن'
+    language: 'اللغة',
+    suggestedBy: 'مقترح من:',
+    runningLow: 'أوشك على الانتهاء!',
+    inStock: 'متوفر'
   }
 };
