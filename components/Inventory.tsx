@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Profile, InventoryItem, Language } from '../types';
 import { ICONS } from '../constants';
@@ -24,7 +23,7 @@ const Inventory: React.FC<InventoryProps> = ({ user, items, lang, onUpdate, onAd
   const [editValue, setEditValue] = useState('');
 
   const t = translations[lang];
-  const isMother = user.role === 'Mother';
+  const isParent = user.role === 'Mother' || user.role === 'Father';
 
   const handleAdd = () => {
     if (newItemName.trim()) {
@@ -57,11 +56,11 @@ const Inventory: React.FC<InventoryProps> = ({ user, items, lang, onUpdate, onAd
         <div>
           <h2 className="text-4xl font-black text-gray-900 tracking-tighter leading-none">{t.pantryStock}</h2>
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-3">
-            {isMother ? 'Mother: Full Edit Mode' : `Logged in as ${user.role}`}
+            {isParent ? 'Full Control Mode' : `Logged in as ${user.role}`}
           </p>
         </div>
         
-        {isMother ? (
+        {isParent ? (
           <button 
             onClick={() => setShowAdd(!showAdd)} 
             className={`p-4 rounded-[1.5rem] shadow-xl transition-all active:scale-90 ${showAdd ? 'bg-gray-100 text-gray-400' : 'bg-orange-500 text-white shadow-orange-100'}`}
@@ -80,7 +79,7 @@ const Inventory: React.FC<InventoryProps> = ({ user, items, lang, onUpdate, onAd
         )}
       </div>
 
-      {showAdd && isMother && (
+      {showAdd && isParent && (
         <div className="bg-white rounded-[2.5rem] p-6 border border-orange-100 shadow-2xl mb-8 animate-in zoom-in duration-300">
           <h3 className="font-black text-gray-800 text-xs uppercase tracking-widest mb-4">Stock the Kitchen</h3>
           <div className="space-y-4">
@@ -105,7 +104,7 @@ const Inventory: React.FC<InventoryProps> = ({ user, items, lang, onUpdate, onAd
         </div>
       )}
 
-      {showRequest && !isMother && (
+      {showRequest && !isParent && (
         <div className="bg-white rounded-[2.5rem] p-6 border border-blue-100 shadow-2xl mb-8 animate-in zoom-in duration-300">
           <h3 className="font-black text-blue-500 text-xs uppercase tracking-widest mb-4">Ask Mom for something</h3>
           <div className="space-y-4">
@@ -133,7 +132,7 @@ const Inventory: React.FC<InventoryProps> = ({ user, items, lang, onUpdate, onAd
           items.map(item => (
             <div key={item.id} className={`bg-white rounded-[2.2rem] p-5 border-2 transition-all duration-300 flex items-center justify-between group ${item.quantity <= 1 ? 'border-red-100 bg-red-50/10' : 'border-gray-50 hover:border-orange-100 shadow-sm shadow-gray-100'}`}>
               <div className="flex-1">
-                {editingItemId === item.id && isMother ? (
+                {editingItemId === item.id && isParent ? (
                   <input 
                     autoFocus
                     className="bg-transparent border-b-2 border-orange-500 outline-none font-black text-gray-800 tracking-tight text-lg w-full"
@@ -144,8 +143,8 @@ const Inventory: React.FC<InventoryProps> = ({ user, items, lang, onUpdate, onAd
                   />
                 ) : (
                   <h4 
-                    onClick={() => { if(isMother) { setEditingItemId(item.id); setEditValue(item.item_name); } }}
-                    className={`font-black text-gray-800 tracking-tight text-lg transition-colors ${isMother ? 'hover:text-orange-500 cursor-pointer' : ''}`}
+                    onClick={() => { if(isParent) { setEditingItemId(item.id); setEditValue(item.item_name); } }}
+                    className={`font-black text-gray-800 tracking-tight text-lg transition-colors ${isParent ? 'hover:text-orange-500 cursor-pointer' : ''}`}
                   >
                     {item.item_name}
                   </h4>
@@ -160,7 +159,7 @@ const Inventory: React.FC<InventoryProps> = ({ user, items, lang, onUpdate, onAd
               </div>
               
               <div className="flex items-center gap-3">
-                {isMother ? (
+                {isParent ? (
                   <>
                     <div className="flex items-center bg-gray-50 rounded-[1.5rem] border border-gray-100 shadow-inner p-0.5">
                       <button onClick={() => onUpdate(item.id, { quantity: Math.max(0, item.quantity - 1) })} className="w-10 h-10 flex items-center justify-center text-gray-400 font-black hover:text-orange-500 transition-colors">-</button>

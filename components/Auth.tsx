@@ -14,7 +14,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [familyCode, setFamilyCode] = useState('');
   const [nickname, setNickname] = useState('');
   const [role, setRole] = useState<UserRole>('Mother');
-  const [avatar, setAvatar] = useState(`https://api.dicebear.com/7.x/avataaars/svg?seed=Mother`);
+  const [avatar, setAvatar] = useState(`https://api.dicebear.com/7.x/avataaars/svg?seed=Mother&mood[]=happy`);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +52,6 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         });
         
         if (signupError) {
-          // If user already exists, try to log them in instead
           if (signupError.message.includes('already registered')) {
             const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
             if (loginError) throw loginError;
@@ -79,11 +78,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         }
       }
     } catch (err: any) {
-      if (err.message.includes('confirmation email')) {
-        setError("Supabase is trying to send an email. Please go to Supabase Dashboard > Auth > Providers > Email and turn OFF 'Confirm Email'.");
-      } else {
-        setError(err.message || 'Authentication Error');
-      }
+      setError(err.message || 'Authentication Error');
     } finally {
       setLoading(false);
     }
@@ -93,13 +88,13 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     e.preventDefault();
     const cleanCode = familyCode.trim().toLowerCase();
     if (!cleanCode) {
-        setError("A Family Code is required. Share this code with your family members.");
+        setError("A Family Code is required.");
         return;
     }
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Session expired. Please sign in again.");
+      if (!user) throw new Error("Session expired.");
       
       const newProfile: Profile = {
         id: user.id,
@@ -119,16 +114,27 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     }
   };
 
+  const updateAvatar = (r: UserRole) => {
+    setRole(r);
+    let seed: string = r;
+    if (r === 'Son') seed = 'Oliver';
+    if (r === 'Daughter') seed = 'Lily';
+    if (r === 'Father') seed = 'George';
+    if (r === 'Mother') seed = 'Sarah';
+    
+    setAvatar(`https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&mood[]=happy`);
+  };
+
   if (mode === 'setup') {
     return (
       <div className="min-h-screen max-w-md mx-auto bg-white flex flex-col p-8 animate-in slide-in-from-bottom-8 duration-500">
         <div className="mb-10 mt-6 text-center">
           <h2 className="text-4xl font-black text-gray-900 leading-none tracking-tight">Your<br/><span className="text-orange-500">Kitchen</span></h2>
-          <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] mt-3">Enter your family code to sync</p>
+          <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] mt-3">Setup your profile</p>
         </div>
         <form onSubmit={handleProfileSubmit} className="space-y-6 flex-1">
           <div className="flex flex-col items-center mb-4">
-            <div className="w-28 h-28 bg-gray-50 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl relative">
+            <div className="w-28 h-28 bg-gray-50 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl relative transition-transform hover:scale-105">
               <img src={avatar} className="w-full h-full object-cover" alt="Avatar" />
             </div>
           </div>
@@ -138,11 +144,8 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               <button 
                 key={r} 
                 type="button" 
-                onClick={() => { 
-                  setRole(r); 
-                  setAvatar(`https://api.dicebear.com/7.x/avataaars/svg?seed=${r}`); 
-                }} 
-                className={`py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${role === r ? 'bg-gray-900 text-white border-gray-900 shadow-lg' : 'bg-white text-gray-400 border-gray-50'}`}
+                onClick={() => updateAvatar(r)} 
+                className={`py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${role === r ? 'bg-gray-900 text-white border-gray-900 shadow-lg' : 'bg-white text-gray-400 border-gray-50 hover:border-gray-100'}`}
               >
                 {r}
               </button>
@@ -152,18 +155,22 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           <div className="space-y-4 pt-4">
             <div className="space-y-1">
               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nickname</label>
-              <input required className="w-full bg-gray-50 border-none rounded-2xl p-4 font-bold text-gray-800" placeholder="e.g. Sarah" value={nickname} onChange={(e) => setNickname(e.target.value)} />
+              <input required className="w-full bg-gray-50 border-none rounded-2xl p-4 font-bold text-gray-800 focus:ring-2 focus:ring-orange-500 outline-none" placeholder="e.g. Sarah" value={nickname} onChange={(e) => setNickname(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Family Code (Shared Secret)</label>
-              <input required className="w-full bg-orange-50 border-none rounded-2xl p-4 font-black text-orange-600 uppercase tracking-widest" placeholder="e.g. SMITHHOUSE" value={familyCode} onChange={(e) => setFamilyCode(e.target.value)} />
-              <p className="text-[8px] text-gray-400 mt-1 px-1">Give this code to your family so you can see each other's meals.</p>
+              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Family Code</label>
+              <input required className="w-full bg-orange-50 border-none rounded-2xl p-4 font-black text-orange-600 uppercase tracking-widest focus:ring-2 focus:ring-orange-500 outline-none" placeholder="e.g. SMITHHOUSE" value={familyCode} onChange={(e) => setFamilyCode(e.target.value)} />
+              <p className="text-[8px] text-gray-400 mt-1 px-1">Share this with family to sync.</p>
             </div>
           </div>
 
           <button type="submit" disabled={loading} className="w-full bg-orange-500 text-white font-black py-5 rounded-[2rem] shadow-xl active:scale-95 transition-all text-sm uppercase tracking-[0.2em]">
             {loading ? 'Entering...' : 'Start Cooking'}
           </button>
+          
+          <div className="text-center pt-8">
+            <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Created by Abdelhak Guehmam</p>
+          </div>
         </form>
       </div>
     );
@@ -188,8 +195,8 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           )}
           
           <div className="space-y-3">
-            <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 text-sm font-semibold focus:ring-2 focus:ring-orange-500" placeholder="Email" />
-            <input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 text-sm font-semibold focus:ring-2 focus:ring-orange-500" placeholder="Password" />
+            <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 text-sm font-semibold focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Email" />
+            <input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 text-sm font-semibold focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Password" />
           </div>
 
           <button type="submit" disabled={loading} className="w-full bg-gray-900 text-white font-black py-5 rounded-[2.5rem] shadow-xl active:scale-95 transition-all uppercase tracking-[0.2em] text-[11px] mt-4">
@@ -203,6 +210,11 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           </div>
         </form>
       </div>
+      
+      <div className="mt-20 text-center">
+        <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Created by Abdelhak Guehmam</p>
+      </div>
+
       <style>{`
         @keyframes shake {
           0%, 100% { transform: translateX(0); }

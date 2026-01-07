@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Profile, Meal, MealSelection, ConfirmedMeal, InventoryItem, CartItem, ChatMessage, MealTime, Language } from './types';
 import { translations } from './translations';
@@ -15,6 +16,7 @@ const App: React.FC = () => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('home');
   const [lang, setLang] = useState<Language>('en');
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   // App State
   const [meals, setMeals] = useState<Meal[]>([]);
@@ -32,14 +34,13 @@ const App: React.FC = () => {
     isSyncing.current = true;
     
     try {
-      const today = new Date().toISOString().split('T')[0];
       const family = user.family_code;
       
       const [mealsRes, invRes, selRes, confRes, cartRes, msgRes] = await Promise.all([
         supabase.from(TABLES.MEALS).select('*').eq('family_code', family),
         supabase.from(TABLES.INVENTORY).select('*').eq('family_code', family).order('item_name'),
-        supabase.from(TABLES.SELECTIONS).select('*').eq('meal_date', today).eq('family_code', family),
-        supabase.from(TABLES.CONFIRMED).select('*').eq('meal_date', today).eq('family_code', family),
+        supabase.from(TABLES.SELECTIONS).select('*').eq('meal_date', selectedDate).eq('family_code', family),
+        supabase.from(TABLES.CONFIRMED).select('*').eq('meal_date', selectedDate).eq('family_code', family),
         supabase.from(TABLES.CART).select('*').eq('family_code', family).order('created_at', { ascending: false }),
         supabase.from(TABLES.MESSAGES).select('*').eq('family_code', family).order('created_at', { ascending: true })
       ]);
@@ -55,7 +56,7 @@ const App: React.FC = () => {
     } finally {
       isSyncing.current = false;
     }
-  }, [user?.family_code]);
+  }, [user?.family_code, selectedDate]);
 
   useEffect(() => {
     let mounted = true;
@@ -125,12 +126,13 @@ const App: React.FC = () => {
     await supabase.from(TABLES.SELECTIONS).upsert({
       user_id: user.id,
       meal_id: mealId,
-      meal_date: new Date().toISOString().split('T')[0],
+      meal_date: selectedDate,
       slot,
       family_code: user.family_code,
       profile_data: { name: user.name, avatar_url: user.avatar_url },
       meal_data: meal ? { name: meal.name } : null
-    });
+    }, { onConflict: 'user_id,meal_date,slot' });
+    fetchData();
   };
 
   const handleConfirmMeal = async (mealId: string, slot: MealTime, time: string) => {
@@ -138,12 +140,13 @@ const App: React.FC = () => {
     const meal = meals.find(m => m.id === mealId);
     await supabase.from(TABLES.CONFIRMED).upsert({
       meal_id: mealId,
-      meal_date: new Date().toISOString().split('T')[0],
+      meal_date: selectedDate,
       slot,
       ready_at: time,
       family_code: user.family_code,
       meal_data: meal ? { name: meal.name } : null
-    });
+    }, { onConflict: 'family_code,meal_date,slot' });
+    fetchData();
   };
 
   const handleAddAndPick = async (name: string, slot: MealTime) => {
@@ -152,13 +155,16 @@ const App: React.FC = () => {
         name, description: 'Quick add', category: slot, family_code: user.family_code, created_by: user.id
     }).select().single();
     if (newMeal) {
-      if (user.role === 'Mother') await handleConfirmMeal(newMeal.id, slot, '19:00');
+      const isParent = user.role === 'Mother' || user.role === 'Father';
+      if (isParent) await handleConfirmMeal(newMeal.id, slot, '19:00');
       else await handleSelectMeal(newMeal.id, slot);
     }
+    fetchData();
   };
 
   const handleInventoryUpdate = async (id: string, updates: Partial<InventoryItem>) => {
     await supabase.from(TABLES.INVENTORY).update(updates).eq('id', id);
+    fetchData();
   };
 
   const handleInventoryAdd = async (name: string, qty: number) => {
@@ -166,15 +172,18 @@ const App: React.FC = () => {
     await supabase.from(TABLES.INVENTORY).insert({ 
       item_name: name, quantity: qty, unit: 'pcs', family_code: user.family_code 
     });
+    fetchData();
   };
 
   const handleInventoryDelete = async (id: string) => {
     await supabase.from(TABLES.INVENTORY).delete().eq('id', id);
+    fetchData();
   };
 
   const handleCartToggle = async (id: string) => {
     const item = cart.find(i => i.id === id);
     if (item) await supabase.from(TABLES.CART).update({ is_purchased: !item.is_purchased }).eq('id', id);
+    fetchData();
   };
 
   const handleCartAdd = async (name: string) => {
@@ -182,10 +191,12 @@ const App: React.FC = () => {
     await supabase.from(TABLES.CART).insert({ 
       item_name: name, quantity: 1, is_purchased: false, family_code: user.family_code 
     });
+    fetchData();
   };
 
   const handleCartRemove = async (id: string) => {
     await supabase.from(TABLES.CART).delete().eq('id', id);
+    fetchData();
   };
 
   if (initialLoading) return (
@@ -197,23 +208,34 @@ const App: React.FC = () => {
   if (!user) return <Auth onLogin={setUser} />;
 
   return (
-    <div className="flex flex-col h-screen max-w-md mx-auto bg-white shadow-2xl relative overflow-hidden" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-      <div className={`h-1.5 w-full transition-colors duration-500 ${user.role === 'Mother' ? 'bg-orange-500' : 'bg-blue-500'}`} />
-      <header className="px-6 py-6 flex justify-between items-center bg-white border-b border-gray-50">
-        <div>
-          <h1 className="text-xl font-black text-gray-900 tracking-tight">{t.appTitle}</h1>
-          <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">{user.name} • {user.role}</p>
+    <div className="flex flex-col h-screen max-w-md mx-auto bg-[#fafafa] shadow-2xl relative overflow-hidden" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      <div className={`h-1.5 w-full transition-colors duration-500 ${(user.role === 'Mother' || user.role === 'Father') ? 'bg-orange-500' : 'bg-blue-500'}`} />
+      <header className="px-6 py-5 flex justify-between items-center bg-white border-b border-gray-100/50 z-20">
+        <div className={lang === 'ar' ? 'text-right' : 'text-left'}>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-black text-gray-900 tracking-tight">{t.appTitle}</h1>
+            <span className="px-2 py-0.5 bg-gray-900 text-[8px] font-black text-white rounded-md tracking-tighter uppercase">Pro</span>
+          </div>
+          <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">Created by Abdelhak Guehmam</p>
         </div>
         <button onClick={() => setLang(l => l === 'en' ? 'ar' : 'en')} className="px-4 py-2 bg-gray-50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-500 border border-gray-100 active:bg-gray-100 transition-all">
           {lang === 'en' ? 'Arabic' : 'English'}
         </button>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-6 py-6 hide-scrollbar pb-28">
+      <main className={`flex-1 flex flex-col ${activeTab === 'chat' ? 'overflow-hidden' : 'overflow-y-auto px-6 py-6 pb-28'} hide-scrollbar`}>
         {activeTab === 'home' && (
           <Dashboard 
-            lang={lang} user={user} meals={meals} selections={selections} confirmedMeals={confirmedMeals} 
-            onSelectMeal={handleSelectMeal} onConfirmMeal={handleConfirmMeal} onAddAndPick={handleAddAndPick}
+            lang={lang} 
+            user={user} 
+            meals={meals} 
+            selections={selections} 
+            confirmedMeals={confirmedMeals} 
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            onSelectMeal={handleSelectMeal} 
+            onConfirmMeal={handleConfirmMeal} 
+            onAddAndPick={handleAddAndPick}
           />
         )}
         {activeTab === 'inventory' && (
