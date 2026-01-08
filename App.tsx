@@ -10,7 +10,7 @@ import ProfileView from './components/ProfileView';
 import Auth from './components/Auth';
 import Navigation from './components/Navigation';
 
-const CACHE_KEY = 'my_kitchen_local_state_v5';
+const CACHE_KEY = 'my_kitchen_local_state_v6';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<Profile | null>(null);
@@ -41,7 +41,7 @@ const App: React.FC = () => {
         if (data.cart) setCart(data.cart);
         if (data.confirmedMeals) setConfirmedMeals(data.confirmedMeals);
       } catch (err) {
-        console.warn("Offline cache corrupted");
+        console.warn("Offline cache hydration failed");
       }
     }
   }, []);
@@ -126,7 +126,7 @@ const App: React.FC = () => {
     if (!user?.family_code) return;
     fetchData();
 
-    const channel = supabase.channel(`kitchen-realtime-${user.family_code}`)
+    const channel = supabase.channel(`kitchen-live-${user.family_code}`)
       .on('postgres_changes', { event: '*', schema: 'public', filter: `family_code=eq.${user.family_code}` }, () => {
         fetchData();
       })
@@ -178,11 +178,11 @@ const App: React.FC = () => {
   const handleAddAndPick = async (name: string, slot: MealTime) => {
     if (!user) return;
     const { data: newMeal } = await supabase.from(TABLES.MEALS).insert({
-        name, description: 'Quick add', category: slot, family_code: user.family_code, created_by: user.id
+        name, description: 'Quick added from mobile', category: slot, family_code: user.family_code, created_by: user.id
     }).select().single();
     if (newMeal) {
       const isParent = user.role === 'Mother' || user.role === 'Father';
-      if (isParent) await handleConfirmMeal(newMeal.id, slot, '19:00');
+      if (isParent) await handleConfirmMeal(newMeal.id, slot, '19:30');
       else await handleSelectMeal(newMeal.id, slot);
     }
     fetchData();
@@ -235,23 +235,24 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full max-w-md mx-auto bg-[#fafafa] relative overflow-hidden" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-      {/* Top Status Bar Decoration */}
-      <div className={`h-1 w-full fixed top-0 left-0 right-0 z-[100] transition-colors duration-500 ${(user.role === 'Mother' || user.role === 'Father') ? 'bg-orange-500' : 'bg-blue-500'}`} />
+      {/* Visual Identity / Notch Helper */}
+      <div className={`h-1.5 w-full fixed top-0 left-0 right-0 z-[100] transition-colors duration-500 ${(user.role === 'Mother' || user.role === 'Father') ? 'bg-orange-500' : 'bg-blue-600'}`} />
       
-      <header className="px-6 py-4 flex justify-between items-center bg-white/90 backdrop-blur-xl border-b border-gray-100/50 z-[90] pt-safe shadow-sm">
+      <header className="px-6 py-5 flex justify-between items-center bg-white/80 backdrop-blur-2xl border-b border-gray-100/60 z-[90] pt-safe shadow-sm">
         <div className={lang === 'ar' ? 'text-right' : 'text-left'}>
           <div className="flex items-center gap-2">
+             <div className="w-8 h-8 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-100">
+               <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+             </div>
             <h1 className="text-xl font-black text-gray-900 tracking-tight">{t.appTitle}</h1>
-            <span className="px-2 py-0.5 bg-gray-900 text-[8px] font-black text-white rounded-md tracking-tighter uppercase">Pro</span>
           </div>
-          <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em]">Family Kitchen Hub</p>
         </div>
         <button onClick={() => setLang(l => l === 'en' ? 'ar' : 'en')} className="px-4 py-2 bg-gray-50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-500 border border-gray-100 active:scale-95 transition-all">
-          {lang === 'en' ? 'Arabic' : 'English'}
+          {lang === 'en' ? 'AR' : 'EN'}
         </button>
       </header>
 
-      <main className={`flex-1 flex flex-col relative ${activeTab === 'chat' ? 'overflow-hidden' : 'overflow-y-auto px-6 py-6 pb-40'} hide-scrollbar`}>
+      <main className={`flex-1 flex flex-col relative ${activeTab === 'chat' ? 'overflow-hidden' : 'overflow-y-auto px-6 py-8 pb-40'} hide-scrollbar`}>
         <div className="page-transition">
           {activeTab === 'home' && (
             <Dashboard 
