@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Profile, Meal, MealSelection, ConfirmedMeal, InventoryItem, CartItem, ChatMessage, MealTime, Language } from './types';
 import { translations } from './translations';
@@ -10,6 +9,8 @@ import Chat from './components/Chat';
 import ProfileView from './components/ProfileView';
 import Auth from './components/Auth';
 import Navigation from './components/Navigation';
+
+const CACHE_KEY = 'my_kitchen_offline_data';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<Profile | null>(null);
@@ -28,6 +29,19 @@ const App: React.FC = () => {
 
   const t = translations[lang];
   const isSyncing = useRef(false);
+
+  // Persistence Logic: Load from Cache
+  useEffect(() => {
+    const cachedData = localStorage.getItem(CACHE_KEY);
+    if (cachedData) {
+      const data = JSON.parse(cachedData);
+      setMeals(data.meals || []);
+      setInventory(data.inventory || []);
+      setCart(data.cart || []);
+      // We don't cache selections/messages as heavily to avoid stale data, 
+      // but you can add them if offline-first is priority.
+    }
+  }, []);
 
   const fetchData = useCallback(async () => {
     if (!user?.family_code || isSyncing.current) return;
@@ -51,6 +65,13 @@ const App: React.FC = () => {
       if (confRes.data) setConfirmedMeals(confRes.data);
       if (cartRes.data) setCart(cartRes.data);
       if (msgRes.data) setMessages(msgRes.data);
+
+      // Save to cache for offline visibility
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        meals: mealsRes.data || [],
+        inventory: invRes.data || [],
+        cart: cartRes.data || []
+      }));
     } catch (err) {
       console.error("Fetch error:", err);
     } finally {
@@ -87,6 +108,7 @@ const App: React.FC = () => {
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setActiveTab('home');
+        localStorage.removeItem(CACHE_KEY);
       }
     });
 
@@ -210,7 +232,8 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col h-screen max-w-md mx-auto bg-[#fafafa] shadow-2xl relative overflow-hidden" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <div className={`h-1.5 w-full transition-colors duration-500 ${(user.role === 'Mother' || user.role === 'Father') ? 'bg-orange-500' : 'bg-blue-500'}`} />
-      <header className="px-6 py-5 flex justify-between items-center bg-white border-b border-gray-100/50 z-20">
+      
+      <header className="px-6 py-5 flex justify-between items-center bg-white border-b border-gray-100/50 z-20 pt-safe">
         <div className={lang === 'ar' ? 'text-right' : 'text-left'}>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-gray-900 tracking-tight">{t.appTitle}</h1>
@@ -223,7 +246,7 @@ const App: React.FC = () => {
         </button>
       </header>
 
-      <main className={`flex-1 flex flex-col ${activeTab === 'chat' ? 'overflow-hidden' : 'overflow-y-auto px-6 py-6 pb-28'} hide-scrollbar`}>
+      <main className={`flex-1 flex flex-col ${activeTab === 'chat' ? 'overflow-hidden' : 'overflow-y-auto px-6 py-6 pb-32'} hide-scrollbar`}>
         {activeTab === 'home' && (
           <Dashboard 
             lang={lang} 
