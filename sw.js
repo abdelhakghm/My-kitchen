@@ -1,15 +1,16 @@
-const CACHE_NAME = 'my-kitchen-v2';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'my-kitchen-shell-v5';
+const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/apple-touch-icon.png'
+  '/apple-touch-icon.png',
+  '/apple-touch-icon.png?v=2'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return cache.addAll(STATIC_ASSETS);
     })
   );
   self.skipWaiting();
@@ -17,31 +18,35 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
+    caches.keys().then((keys) => {
       return Promise.all(
-        cacheNames.map((name) => {
-          if (name !== CACHE_NAME) return caches.delete(name);
-        })
+        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
       );
-    }).then(() => clients.claim())
+    }).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network-first strategy for dynamic data, Cache-first for static assets
-  const url = new URL(event.request.url);
-  
-  if (ASSETS_TO_CACHE.includes(url.pathname)) {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Strategy: Cache First for local static assets
+  if (STATIC_ASSETS.includes(url.pathname)) {
     event.respondWith(
-      caches.match(event.request).then((response) => {
-        return response || fetch(event.request);
-      })
+      caches.match(request).then((cached) => cached || fetch(request))
     );
-  } else {
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match(event.request);
-      })
-    );
+    return;
   }
+
+  // Strategy: Network First (with fallback to cache) for everything else
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
+        // Optionally cache dynamic responses if needed
+        return response;
+      })
+      .catch(() => {
+        return caches.match(request);
+      })
+  );
 });

@@ -20,7 +20,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, lang }
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-100 px-6 py-3 flex justify-between items-center z-30 pb-safe shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
+    <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t border-gray-100 px-6 py-3 flex justify-between items-center z-[100] pb-safe shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
@@ -28,12 +28,12 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, lang }
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex flex-col items-center gap-1 transition-all duration-300 ${
-              isActive ? 'text-orange-500 scale-110' : 'text-gray-400'
+            className={`flex flex-col items-center gap-1 transition-all duration-300 active:scale-95 ${
+              isActive ? 'text-orange-500 scale-110' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
             <Icon className={`w-6 h-6 ${isActive ? 'fill-orange-50' : ''}`} />
-            <span className="text-[10px] font-semibold">{tab.label}</span>
+            <span className="text-[10px] font-bold tracking-tight">{tab.label}</span>
           </button>
         );
       })}
