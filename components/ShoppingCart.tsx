@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Profile, CartItem, Language } from '../types';
 import { ICONS } from '../constants';
@@ -16,6 +15,7 @@ interface ShoppingCartProps {
 const ShoppingCart: React.FC<ShoppingCartProps> = ({ user, items, lang, onToggle, onAdd, onRemove }) => {
   const [newItemName, setNewItemName] = useState('');
   const t = translations[lang];
+  const isParent = user.role === 'Mother' || user.role === 'Father';
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,34 +26,75 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ user, items, lang, onToggle
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="mb-8">
-        <h2 className="text-3xl font-black text-gray-900 leading-tight">{t.shoppingList}</h2>
+    <div className="pb-40 px-1 animate-in fade-in duration-500">
+      <div className="mb-10">
+        <h2 className="text-[42px] font-black text-gray-900 leading-[1] tracking-tighter">
+          Shopping<br/><span className="text-orange-500">List.</span>
+        </h2>
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mt-3">{items.length} {t.shop}</p>
       </div>
 
-      {(user.role === 'Father' || user.role === 'Mother') && (
+      {isParent && (
         <form onSubmit={handleAdd} className="mb-8">
           <div className="relative group">
-            <input type="text" placeholder={t.foodName} value={newItemName} onChange={(e) => setNewItemName(e.target.value)} className="w-full bg-white border-2 border-gray-100 rounded-2xl p-4 pr-16 text-sm" />
-            <button type="submit" className="absolute right-2 top-2 bottom-2 aspect-square bg-green-500 text-white rounded-xl flex items-center justify-center"><ICONS.Plus className="w-5 h-5" /></button>
+            <input 
+              type="text" 
+              placeholder={t.foodName} 
+              value={newItemName} 
+              onChange={(e) => setNewItemName(e.target.value)} 
+              className="w-full bg-white border-none rounded-[2rem] p-5 pr-16 text-sm font-bold shadow-sm focus:ring-4 focus:ring-orange-100 transition-all outline-none" 
+            />
+            <button 
+              type="submit" 
+              className="absolute right-2 top-2 bottom-2 w-12 bg-orange-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-orange-100 active:scale-90 transition-all"
+            >
+              <ICONS.Plus className="w-6 h-6" />
+            </button>
           </div>
         </form>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {items.length === 0 ? (
-          <div className="text-center py-16 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-            <ICONS.Cart className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 font-medium">Empty List</p>
+          <div className="text-center py-20 bg-white rounded-[2.5rem] border border-gray-100">
+            <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <ICONS.Cart className="w-8 h-8 text-gray-200" />
+            </div>
+            <p className="text-[11px] font-black text-gray-300 uppercase tracking-[0.4em]">All Set!</p>
           </div>
         ) : (
           items.map(item => (
-            <div key={item.id} className={`flex items-center gap-4 p-4 rounded-2xl border ${item.is_purchased ? 'bg-gray-50 border-transparent opacity-60' : 'bg-white border-gray-100 shadow-sm'}`}>
-              <button onClick={() => onToggle(item.id)} className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center ${item.is_purchased ? 'bg-green-500 border-green-500 text-white' : 'border-gray-200'}`}>{item.is_purchased && <ICONS.Check className="w-4 h-4 stroke-[3px]" />}</button>
+            <div 
+              key={item.id} 
+              className={`group flex items-center gap-4 p-5 rounded-[2rem] border transition-all ${
+                item.is_purchased 
+                  ? 'bg-gray-50/50 border-transparent opacity-50 scale-[0.98]' 
+                  : 'bg-white border-gray-100 shadow-sm hover:shadow-md'
+              }`}
+            >
+              <button 
+                onClick={() => onToggle(item.id)} 
+                className={`w-10 h-10 rounded-xl border-2 flex items-center justify-center transition-all ${
+                  item.is_purchased 
+                    ? 'bg-green-500 border-green-500 text-white' 
+                    : 'bg-gray-50 border-gray-100 text-transparent hover:border-orange-200'
+                }`}
+              >
+                <ICONS.Check className="w-5 h-5 stroke-[4px]" />
+              </button>
+              
               <div className="flex-1">
-                <span className={`font-bold ${item.is_purchased ? 'line-through text-gray-400' : 'text-gray-800'}`}>{item.item_name}</span>
+                <span className={`text-base font-black tracking-tight ${item.is_purchased ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+                  {item.item_name}
+                </span>
               </div>
-              <button onClick={() => onRemove(item.id)} className="p-2 text-gray-300 hover:text-red-500"><ICONS.Plus className="w-5 h-5 rotate-45" /></button>
+              
+              <button 
+                onClick={() => onRemove(item.id)} 
+                className="w-10 h-10 flex items-center justify-center text-gray-200 hover:text-red-400 transition-colors"
+              >
+                <ICONS.Plus className="w-6 h-6 rotate-45" />
+              </button>
             </div>
           ))
         )}

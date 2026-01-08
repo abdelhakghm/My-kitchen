@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Profile, UserRole } from '../types';
 import { supabase, TABLES } from '../services/supabase';
@@ -154,12 +153,24 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
           <div className="space-y-4 pt-4">
             <div className="space-y-1">
-              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nickname</label>
-              <input required className="w-full bg-gray-50 border-none rounded-2xl p-4 font-bold text-gray-800 focus:ring-2 focus:ring-orange-500 outline-none" placeholder="e.g. Sarah" value={nickname} onChange={(e) => setNickname(e.target.value)} />
+              <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Nickname</label>
+              <input 
+                required 
+                className="w-full bg-gray-100 border border-transparent rounded-2xl p-4 font-bold text-gray-900 focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all outline-none placeholder:text-gray-400" 
+                placeholder="e.g. Sarah" 
+                value={nickname} 
+                onChange={(e) => setNickname(e.target.value)} 
+              />
             </div>
             <div className="space-y-1">
-              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Family Code</label>
-              <input required className="w-full bg-orange-50 border-none rounded-2xl p-4 font-black text-orange-600 uppercase tracking-widest focus:ring-2 focus:ring-orange-500 outline-none" placeholder="e.g. SMITHHOUSE" value={familyCode} onChange={(e) => setFamilyCode(e.target.value)} />
+              <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Family Code</label>
+              <input 
+                required 
+                className="w-full bg-orange-50 border border-orange-100 rounded-2xl p-4 font-black text-orange-600 uppercase tracking-widest focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all outline-none placeholder:text-orange-300" 
+                placeholder="e.g. SMITHHOUSE" 
+                value={familyCode} 
+                onChange={(e) => setFamilyCode(e.target.value)} 
+              />
               <p className="text-[8px] text-gray-400 mt-1 px-1">Share this with family to sync.</p>
             </div>
           </div>
@@ -182,7 +193,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         <div className="w-24 h-24 bg-orange-500 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 shadow-2xl">
           <svg className="w-12 h-12 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
         </div>
-        <h1 className="text-4xl font-black text-gray-900 tracking-tighter">MY KITCHEN</h1>
+        <h1 className="text-4xl font-black text-gray-900 tracking-tighter uppercase">MY KITCHEN</h1>
         <p className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.4em] mt-2">Family Hub</p>
       </div>
 
@@ -195,16 +206,36 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           )}
           
           <div className="space-y-3">
-            <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 text-sm font-semibold focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Email" />
-            <input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 text-sm font-semibold focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Password" />
+            <div className="space-y-1">
+              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">Email Address</label>
+              <input 
+                required 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                className="w-full bg-gray-100 border border-transparent rounded-2xl px-6 py-4 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-orange-500 focus:bg-white focus:border-orange-100 outline-none transition-all placeholder:text-gray-400" 
+                placeholder="name@email.com" 
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">Password</label>
+              <input 
+                required 
+                type="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                className="w-full bg-gray-100 border border-transparent rounded-2xl px-6 py-4 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-orange-500 focus:bg-white focus:border-orange-100 outline-none transition-all placeholder:text-gray-400" 
+                placeholder="••••••••" 
+              />
+            </div>
           </div>
 
-          <button type="submit" disabled={loading} className="w-full bg-gray-900 text-white font-black py-5 rounded-[2.5rem] shadow-xl active:scale-95 transition-all uppercase tracking-[0.2em] text-[11px] mt-4">
+          <button type="submit" disabled={loading} className="w-full bg-gray-900 text-white font-black py-5 rounded-[2.5rem] shadow-xl active:scale-95 transition-all uppercase tracking-[0.2em] text-[11px] mt-6">
             {loading ? 'Checking...' : (mode === 'login' ? 'Sign In' : 'Create Kitchen Account')}
           </button>
           
           <div className="text-center pt-4">
-            <button type="button" onClick={() => setMode(mode === 'login' ? 'signup' : 'login')} className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-600 transition-colors">
+            <button type="button" onClick={() => setMode(mode === 'login' ? 'signup' : 'login')} className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-orange-500 transition-colors">
               {mode === 'login' ? "New here? Create Account" : "Already have an account? Sign In"}
             </button>
           </div>
@@ -222,6 +253,10 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           75% { transform: translateX(4px); }
         }
         .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
+        input::placeholder {
+          color: #9ca3af !important;
+          opacity: 1;
+        }
       `}</style>
     </div>
   );
